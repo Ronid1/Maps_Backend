@@ -15,6 +15,7 @@ let DUMMY_PLACES = [
     },
     address: "20 W 34th St., New York, NY 10001, United States",
     creator: "u1",
+    tag: "t1",
   },
 ];
 
@@ -30,7 +31,6 @@ function getPlaceById(req, res, next) {
 
 function getPlaceByUserId(req, res, next) {
   const userId = req.params.uid;
-  console.log(DUMMY_PLACES);
   const places = DUMMY_PLACES.filter((p) => {
     return p.creator === userId;
   });
@@ -41,12 +41,24 @@ function getPlaceByUserId(req, res, next) {
   res.json({ places });
 }
 
+function getPlaceByTagId(req, res, next) {
+  const tagId = req.params.tid;
+  const places = DUMMY_PLACES.filter((p) => {
+    return p.tag === tagId;
+  });
+  if (!places.length)
+    return next(
+      new HttpError("Could not find places with provided tag id", 404)
+    );
+  res.json({ places });
+}
+
 async function createPlace(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty())
     return next(new HttpError("Invalid inputs passed", 422));
 
-  const { title, description, address, creator } = req.body;
+  const { title, description, address, creator, tag } = req.body;
   let coordinates;
   try {
     coordinates = await getCoordsForAddress(address);
@@ -61,6 +73,7 @@ async function createPlace(req, res, next) {
     location: coordinates,
     address,
     creator,
+    tag,
   };
 
   DUMMY_PLACES.push(newPlace);
@@ -73,11 +86,12 @@ function updatePlace(req, res, next) {
     return next(new HttpError("Invalid inputs passed", 422));
 
   const placeId = req.params.pid;
-  const { title, description } = req.body;
+  const { title, description, tag } = req.body;
   const placeToUpdate = { ...DUMMY_PLACES.find((p) => p.id === placeId) };
   const index = DUMMY_PLACES.findIndex((p) => p.id === placeId);
   placeToUpdate.title = title;
   placeToUpdate.description = description;
+  placeToUpdate.tag = tag;
 
   DUMMY_PLACES[index] = placeToUpdate;
 
@@ -96,6 +110,7 @@ function deletePlace(req, res, next) {
 
 exports.getPlaceById = getPlaceById;
 exports.getPlaceByUserId = getPlaceByUserId;
+exports.getPlaceByTagId = getPlaceByTagId;
 exports.createPlace = createPlace;
 exports.updatePlace = updatePlace;
 exports.deletePlace = deletePlace;
