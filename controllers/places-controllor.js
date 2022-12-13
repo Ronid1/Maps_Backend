@@ -5,6 +5,17 @@ const getCoordsForAddress = require("../util/location");
 const Place = require("../models/place");
 const place = require("../models/place");
 
+async function getplaces(req, res, next){
+  let places;
+  try {
+    places = await Place.find({});
+  } catch {
+    return next(new HttpError("Something went wrong", 500));
+  }
+
+  res.json({ places: places.map((place) => place.toObject({ getters: true })) });
+}
+
 async function getPlaceById(req, res, next) {
   const placeId = req.params.pid;
   let place;
@@ -78,7 +89,7 @@ async function createPlace(req, res, next) {
     return next(new HttpError("Creating place failed, please try again", 500));
   }
 
-  res.status(201).json({ place: newPlace });
+  res.status(201).json({ place: newPlace.toObject({ getters: true }) });
 }
 
 async function updatePlace(req, res, next) {
@@ -88,20 +99,15 @@ async function updatePlace(req, res, next) {
 
   const placeId = req.params.pid;
   const { title, description, tag } = req.body;
+
   let placeToUpdate;
   try {
     placeToUpdate = await Place.findById(placeId);
-  } catch {
-    return next(new HttpError("Something went wrong", 500));
-  }
-  const index = DUMMY_PLACES.findIndex((place) => place.id === placeId);
-  placeToUpdate.title = title;
-  placeToUpdate.description = description;
-  placeToUpdate.tag = tag;
-
-  try {
+    placeToUpdate.title = title;
+    placeToUpdate.description = description;
+    placeToUpdate.tag = tag;
     placeToUpdate.save();
-  } catch (error) {
+  } catch {
     return next(new HttpError("Something went wrong", 500));
   }
 
@@ -113,21 +119,17 @@ async function deletePlace(req, res, next) {
   let placeToDelete;
   try {
     placeToDelete = await Place.findById(placeId);
+    await placeToDelete.remove();
   } catch {
     return next(new HttpError("Something went wrong", 500));
   }
 
   if (!placeToDelete) return next(new HttpError("no such place found", 404));
 
-  try {
-    await placeToDelete.remove();
-  } catch {
-    return next(new HttpError("Something went wrong", 500));
-  }
-
   res.status(200).json({ message: "Deleted" });
 }
 
+exports.getplaces = getplaces;
 exports.getPlaceById = getPlaceById;
 exports.getPlaceByUserId = getPlaceByUserId;
 exports.getPlaceByTagId = getPlaceByTagId;

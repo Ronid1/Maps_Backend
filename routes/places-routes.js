@@ -4,6 +4,7 @@ const placesControllers = require("../controllers/places-controllor");
 
 const router = express.Router();
 
+router.get("/", placesControllers.getplaces);
 router.get("/:pid", placesControllers.getPlaceById);
 router.get("/user/:uid", placesControllers.getPlaceByUserId);
 router.get("/tag/:tid", placesControllers.getPlaceByTagId);
