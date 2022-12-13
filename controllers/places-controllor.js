@@ -5,22 +5,6 @@ const getCoordsForAddress = require("../util/location");
 const Place = require("../models/place");
 const place = require("../models/place");
 
-let DUMMY_PLACES = [
-  {
-    id: "p1",
-    title: "Empire State Building",
-    description:
-      "The Empire State Building is a 102-story Art Deco skyscraper in Midtown Manhattan, New York City",
-    location: {
-      lat: 40.7484,
-      lng: -73.9857,
-    },
-    address: "20 W 34th St., New York, NY 10001, United States",
-    creator: "u1",
-    tag: "t1",
-  },
-];
-
 async function getPlaceById(req, res, next) {
   const placeId = req.params.pid;
   let place;
