@@ -1,80 +1,93 @@
-const uuid = require("uuid").v4;
 const { validationResult } = require("express-validator");
 const HttpError = require("../models/http-error");
+const Tag = require("../models/tag");
 
-let DUMMY_TAGS = [
-  {
-    id: "t1",
-    name: "Restaurants",
-    color: "#8c0a06",
-  },
-  {
-    id: "t2",
-    name: "Parks",
-    color: "#033303",
-  },
-];
+async function getTags(req, res, next) {
+  let tags;
+  try {
+    tags = await Tag.find({});
+  } catch {
+    return next(new HttpError("Something went wrong", 500));
+  }
 
-function getTags(req, res, next) {
-  res.json({ tags: DUMMY_TAGS });
+  res.json({ tags: tags.map((tag) => tag.toObject({ getters: true })) });
 }
 
-function getTagById(req, res, next) {
+async function getTagById(req, res, next) {
   const tagId = req.params.id;
-  const tag = DUMMY_TAGS.find((t) => {
-    return t.id === tagId;
-  });
+  let tag;
+
+  try {
+    tag = await Tag.findById(tagId);
+  } catch {
+    return next(new HttpError("Something went wrong", 500));
+  }
+
   if (!tag)
     return next(new HttpError("Could not find tag with provided id", 404));
-  res.json({ tag });
+  res.json({ tag: tag.toObject({ getters: true }) });
 }
 
-function createTag(req, res, next){
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return next(new HttpError("Invalid inputs passed", 422));
-  
-    const { name, color } = req.body;  
-    const newTag = {
-      id: uuid(),
-      name,
-      color,
-    };
-    DUMMY_TAGS.push(newTag);
-  
-    res.status(201).json({ tag: newTag });
+async function createTag(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty())
+    return next(new HttpError("Invalid inputs passed", 422));
+
+  const { name, color, places } = req.body;
+  const newTag = new Tag({
+    name,
+    color,
+    places,
+  });
+
+  try {
+    await newTag.save();
+  } catch {
+    return next(new HttpError("Something went wrong", 500));
+  }
+
+  res.status(201).json({ tag: newTag.toObject({ getters: true }) });
 }
 
-function editTag(req, res, next){
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return next(new HttpError("Invalid inputs passed", 422));
-  
-    const tagId = req.params.id;
-    const { name, color } = req.body;
-    const tagToUpdate = { ...DUMMY_TAGS.find((t) => t.id === tagId) };
-    const index = DUMMY_TAGS.findIndex((t) => t.id === tagId);
+async function editTag(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty())
+    return next(new HttpError("Invalid inputs passed", 422));
+
+  const tagId = req.params.id;
+  const { name, color, places } = req.body;
+
+  let tagToUpdate;
+  try {
+    tagToUpdate = await Tag.findById(tagId);
     tagToUpdate.name = name;
     tagToUpdate.color = color;
-  
-    DUMMY_TAGS[index] = tagToUpdate;
-  
-    res.status(200).json({ tag: tagToUpdate });
+    tagToUpdate.places = places;
+    tagToUpdate.save();
+  } catch {
+    return next(new HttpError("Something went wrong", 500));
+  }
+
+  res.status(200).json({ tag: tagToUpdate.toObject({ getters: true }) });
 }
 
-function deleteTag(req, res, next){
-    const tagId = req.params.id;
-    const tagToDelete = DUMMY_TAGS.find((t) => t.id === tagId);
-    if (!tagToDelete) return next(new HttpError("no such tag found", 404));
-  
-    DUMMY_TAGS = DUMMY_TAGS.findIndex((t) => t !== tagToDelete);
-  
-    res.status(200).json({ message: "Deleted" });
+async function deleteTag(req, res, next) {
+  const tagId = req.params.id;
+  let tagToDelete;
+  try {
+    tagToDelete = await Tag.findById(tagId);
+    await tagToDelete.remove();
+  } catch {
+    return next(new HttpError("Something went wrong", 500));
+  }
+
+  if (!tagToDelete) return next(new HttpError("no such tag found", 404));
+
+  res.status(200).json({ message: "Deleted" });
 }
 
-
-exports.getTags = getTags
-exports.getTagById = getTagById
-exports.createTag = createTag
-exports.editTag = editTag
-exports.deleteTag = deleteTag
+exports.getTags = getTags;
+exports.getTagById = getTagById;
+exports.createTag = createTag;
+exports.editTag = editTag;
+exports.deleteTag = deleteTag;

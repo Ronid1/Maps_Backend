@@ -16,6 +16,6 @@ router.patch(
   [check("name").not().isEmpty(), check("color").trim().isHexColor()],
   tagsControllers.editTag
 );
-router.delete(":/id", tagsControllers.deleteTag)
+router.delete("/:id", tagsControllers.deleteTag);
 
 module.exports = router;
