@@ -19,7 +19,7 @@ async function createUser(req, res, next) {
   if (!errors.isEmpty())
     return next(new HttpError("Invalid inputs passed", 422));
 
-  const { name, email, password, places } = req.body;
+  const { name, email, password } = req.body;
   let existingUser;
   try {
     existingUser = await User.findOne({ email: email });
@@ -33,7 +33,7 @@ async function createUser(req, res, next) {
     name,
     email,
     password,
-    places,
+    places: [],
   });
 
   try {

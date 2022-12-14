@@ -16,9 +16,8 @@ async function getCoordsForAddress(address) {
       "Could not create coordinates for address provided",
       422
     );
-
+    
   const coordinates = data.results[0].geometry.location;
-  console.log(coordinates);
   return coordinates;
 }
 
