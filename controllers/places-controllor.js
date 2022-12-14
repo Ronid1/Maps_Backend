@@ -134,7 +134,6 @@ async function createPlace(req, res, next) {
   res.status(201).json({ place: newPlace.toObject({ getters: true }) });
 }
 
-//TODO
 async function updatePlace(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty())
@@ -143,18 +142,55 @@ async function updatePlace(req, res, next) {
   const placeId = req.params.pid;
   const { title, description, tags } = req.body;
 
-  //TODO: chack valid tags & remove location from unused tags
   let placeToUpdate;
   try {
-    placeToUpdate = await Place.findById(placeId);
-    placeToUpdate.title = title;
-    placeToUpdate.description = description;
-    placeToUpdate.tags = tags;
-    placeToUpdate.save();
+    placeToUpdate = await Place.findById(placeId).populate("tags");
   } catch {
     return next(new HttpError("Something went wrong", 500));
   }
 
+  let originalTags = placeToUpdate.tags;
+  //validate tags
+  let validTag;
+  let newTags = [];
+  for (let tag of tags) {
+    try {
+      validTag = await Tag.findById(tag);
+      newTags.push(validTag);
+    } catch {
+      return next(
+        new HttpError("Updating place failed, please try again", 500)
+      );
+    }
+    if (!validTag) return next(new HttpError("Invalid tag", 404));
+  }
+
+  //compare original tags to new tags
+  let tagsToRemove = originalTags.filter((item) => !newTags.includes(item));
+  let tagsToAdd = newTags.filter((item) => !originalTags.includes(item));
+
+  placeToUpdate.title = title;
+  placeToUpdate.description = description;
+  placeToUpdate.tags = tags;
+
+  try {
+    const session = await mongoose.mongoose.startSession();
+    session.startTransaction();
+    await placeToUpdate.save({ session });
+    //remove from tags
+    for (let tag of tagsToRemove) {
+      tag.places.pull(placeToUpdate);
+      await tag.save({ session });
+    }
+    //add to tags
+    for (let tag of tagsToAdd) {
+      tag.places.push(placeToUpdate);
+      await tag.save({ session });
+    }
+    await session.commitTransaction();
+  } catch {
+    return next(new HttpError("Something went wrong", 500));
+  }
   res.status(200).json({ place: placeToUpdate.toObject({ getters: true }) });
 }
 
@@ -178,7 +214,7 @@ async function deletePlace(req, res, next) {
     placeToDelete.creator.places.pull(placeToDelete);
     await placeToDelete.creator.save({ session });
     //remove from tags
-    for (let tag of placeToDelete.tags){
+    for (let tag of placeToDelete.tags) {
       tag.places.pull(placeToDelete);
       await tag.save({ session });
     }

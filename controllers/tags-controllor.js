@@ -51,7 +51,6 @@ async function createTag(req, res, next) {
   res.status(201).json({ tag: newTag.toObject({ getters: true }) });
 }
 
-//TODO
 async function editTag(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty())
@@ -60,19 +59,57 @@ async function editTag(req, res, next) {
   const tagId = req.params.id;
   const { name, color, places } = req.body;
 
-  //TODO: check places are valid & remove unused places & remove from places
-
   let tagToUpdate;
   try {
-    tagToUpdate = await Tag.findById(tagId);
-    tagToUpdate.name = name;
-    tagToUpdate.color = color;
-    tagToUpdate.places = places;
-    tagToUpdate.save();
+    tagToUpdate = await Tag.findById(tagId).populate("places");
   } catch {
     return next(new HttpError("Something went wrong", 500));
   }
 
+  //validate places
+  let originalPlaces = tagToUpdate.places;
+  let validPlace;
+  let newPlaces = [];
+  for (let place of places) {
+    try {
+      validPlace = await Place.findById(place);
+      newPlaces.push(validPlace);
+    } catch {
+      return next(
+        new HttpError("Updating tag failed, please try again", 500)
+      );
+    }
+    if (!validPlace) return next(new HttpError("Invalid place", 404));
+  }
+
+  //compare original places to new places
+  let placesToRemove = originalPlaces.filter((item) => !newPlaces.includes(item));
+  let placesToAdd = newPlaces.filter((item) => !originalPlaces.includes(item));
+
+  tagToUpdate.name = name;
+  tagToUpdate.color = color;
+  tagToUpdate.places = places;
+
+  try {
+    const session = await mongoose.mongoose.startSession();
+    session.startTransaction();
+    await tagToUpdate.save({ session });
+    //remove from places
+    for (let place of placesToRemove) {
+      place.tags.pull(tagToUpdate);
+      await place.save({ session });
+    }
+    //add to tags
+    for (let place of placesToAdd) {
+      place.tags.push(tagToUpdate);
+      await place.save({ session });
+    }
+    await session.commitTransaction();
+
+
+  } catch {
+    return next(new HttpError("Something went wrong", 500));
+  }
   res.status(200).json({ tag: tagToUpdate.toObject({ getters: true }) });
 }
 
