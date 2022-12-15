@@ -1,4 +1,4 @@
-const uuid = require("uuid").v4;
+const bcrypt = require("bcrypt");
 const { validationResult } = require("express-validator");
 const HttpError = require("../models/http-error");
 const User = require("../models/user");
@@ -8,7 +8,7 @@ async function getUsers(req, res, next) {
   try {
     users = await User.find({}, "-password");
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   res.json({ users: users.map((user) => user.toObject({ getters: true })) });
@@ -24,15 +24,22 @@ async function createUser(req, res, next) {
   try {
     existingUser = await User.findOne({ email: email });
   } catch (err) {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   if (existingUser) return next(new HttpError("User already exists", 422));
 
+  let hashedPassword;
+  try {
+    hashedPassword = await bcrypt.hash(password, 12);
+  } catch {
+    return next(new HttpError());
+  }
+
   const newUser = new User({
     name,
     email,
-    password,
+    password: hashedPassword,
     places: [],
   });
 
@@ -52,10 +59,19 @@ async function loginUser(req, res, next) {
   try {
     user = await User.findOne({ email: email });
   } catch (err) {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
-  if (!user || user.password !== password)
-    return next(new HttpError("wrong credentials", 401));
+
+  if (!user) return next(new HttpError("User does not exicst", 401));
+
+  let validPassword = false;
+  try {
+    validPassword = await bcrypt.compare(password, user.password);
+  } catch {
+    return next(new HttpError());
+  }
+
+  if (!validPassword) return next(new HttpError("Wrong password, please try again", 401));
 
   res.status(200).json({ message: "Login succesful" });
 }

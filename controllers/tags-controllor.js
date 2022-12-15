@@ -9,7 +9,7 @@ async function getTags(req, res, next) {
   try {
     tags = await Tag.find({});
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   res.json({ tags: tags.map((tag) => tag.toObject({ getters: true })) });
@@ -22,7 +22,7 @@ async function getTagById(req, res, next) {
   try {
     tag = await Tag.findById(tagId);
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   if (!tag)
@@ -45,7 +45,7 @@ async function createTag(req, res, next) {
   try {
     await newTag.save();
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   res.status(201).json({ tag: newTag.toObject({ getters: true }) });
@@ -63,7 +63,7 @@ async function editTag(req, res, next) {
   try {
     tagToUpdate = await Tag.findById(tagId).populate("places");
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   //validate places
@@ -75,15 +75,15 @@ async function editTag(req, res, next) {
       validPlace = await Place.findById(place);
       newPlaces.push(validPlace);
     } catch {
-      return next(
-        new HttpError("Updating tag failed, please try again", 500)
-      );
+      return next(new HttpError());
     }
     if (!validPlace) return next(new HttpError("Invalid place", 404));
   }
 
   //compare original places to new places
-  let placesToRemove = originalPlaces.filter((item) => !newPlaces.includes(item));
+  let placesToRemove = originalPlaces.filter(
+    (item) => !newPlaces.includes(item)
+  );
   let placesToAdd = newPlaces.filter((item) => !originalPlaces.includes(item));
 
   tagToUpdate.name = name;
@@ -105,10 +105,8 @@ async function editTag(req, res, next) {
       await place.save({ session });
     }
     await session.commitTransaction();
-
-
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
   res.status(200).json({ tag: tagToUpdate.toObject({ getters: true }) });
 }
@@ -119,7 +117,7 @@ async function deleteTag(req, res, next) {
   try {
     tagToDelete = await Tag.findById(tagId).populate("places");
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   if (!tagToDelete) return next(new HttpError("no such tag found", 404));
@@ -135,7 +133,7 @@ async function deleteTag(req, res, next) {
     }
     await session.commitTransaction();
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
   res.status(200).json({ message: "Deleted" });
 }

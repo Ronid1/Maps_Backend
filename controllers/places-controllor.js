@@ -11,7 +11,7 @@ async function getplaces(req, res, next) {
   try {
     places = await Place.find({});
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   res.json({
@@ -25,7 +25,7 @@ async function getPlaceById(req, res, next) {
   try {
     place = await Place.findById(placeId);
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   if (!place)
@@ -40,7 +40,7 @@ async function getPlaceByUserId(req, res, next) {
   try {
     places = await Place.find({ creator: userId });
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
   if (!places.length)
     return next(
@@ -55,7 +55,7 @@ async function getPlaceByTagId(req, res, next) {
   try {
     places = await Place.find({ tag: tagId });
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   if (!places.length)
@@ -84,7 +84,7 @@ async function createPlace(req, res, next) {
   try {
     user = await User.findById(creator);
   } catch (err) {
-    return next(new HttpError("Creating place failed, please try again", 500));
+    return next(new HttpError());
   }
   if (!user) return next(new HttpError("Invalide creator", 404));
 
@@ -98,7 +98,7 @@ async function createPlace(req, res, next) {
         if (!tagObj) return next(new HttpError("Invalide tag", 404));
       } catch (err) {
         return next(
-          new HttpError("Creating place failed, please try again1", 500)
+          new HttpError()
         );
       }
     }
@@ -128,7 +128,7 @@ async function createPlace(req, res, next) {
     }
     await session.commitTransaction();
   } catch {
-    return next(new HttpError("Creating place failed, please try again", 500));
+    return next(new HttpError());
   }
 
   res.status(201).json({ place: newPlace.toObject({ getters: true }) });
@@ -146,7 +146,7 @@ async function updatePlace(req, res, next) {
   try {
     placeToUpdate = await Place.findById(placeId).populate("tags");
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   let originalTags = placeToUpdate.tags;
@@ -159,7 +159,7 @@ async function updatePlace(req, res, next) {
       newTags.push(validTag);
     } catch {
       return next(
-        new HttpError("Updating place failed, please try again", 500)
+        new HttpError()
       );
     }
     if (!validTag) return next(new HttpError("Invalid tag", 404));
@@ -189,7 +189,7 @@ async function updatePlace(req, res, next) {
     }
     await session.commitTransaction();
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
   res.status(200).json({ place: placeToUpdate.toObject({ getters: true }) });
 }
@@ -201,7 +201,7 @@ async function deletePlace(req, res, next) {
   try {
     placeToDelete = await Place.findById(placeId).populate("creator tags");
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
 
   if (!placeToDelete) return next(new HttpError("no such place found", 404));
@@ -221,7 +221,7 @@ async function deletePlace(req, res, next) {
 
     await session.commitTransaction();
   } catch {
-    return next(new HttpError("Something went wrong", 500));
+    return next(new HttpError());
   }
   res.status(200).json({ message: "Deleted" });
 }
