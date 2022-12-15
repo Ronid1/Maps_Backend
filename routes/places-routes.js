@@ -1,6 +1,7 @@
 const express = require("express");
 const { check } = require("express-validator");
 const placesControllers = require("../controllers/places-controllor");
+const checkAuth = require("../middleware/check-auth");
 
 const router = express.Router();
 
@@ -8,6 +9,7 @@ router.get("/", placesControllers.getplaces);
 router.get("/:pid", placesControllers.getPlaceById);
 router.get("/user/:uid", placesControllers.getPlaceByUserId);
 router.get("/tag/:tid", placesControllers.getPlaceByTagId);
+router.use(checkAuth);
 router.post(
   "/",
   [
