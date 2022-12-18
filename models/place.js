@@ -7,7 +7,7 @@ const placeSchema = new Schema({
   address: { type: String, required: true },
   location: {
     lat: { type: Number, required: false },
-    long: { type: Number, required: false },
+    lng: { type: Number, required: false },
   },
   creator: { type: mongoose.Types.ObjectId, required: true, ref: "User" },
   tags: [{ type: mongoose.Types.ObjectId, required: false, ref: "Tag" }],

@@ -78,7 +78,7 @@ async function createPlace(req, res, next) {
   } catch (error) {
     return next(error);
   }
-  
+
   // Check creator is a user in system
   let user;
   try {
